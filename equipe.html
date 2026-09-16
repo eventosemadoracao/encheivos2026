@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel da Equipe — Enchei-vos do Espírito Santo 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#170a06; --ash:#241109; --ash-2:#2f150a;
+    --flame:#df5a1f; --gold:#e7b04f; --cream:#f4ebdb; --dove:#fffaf0;
+    --line:rgba(231,176,79,.22); --ok:#3aa855; --warn:#e7b04f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--cream);font-family:'Inter',sans-serif;}
+  h1,h2,.serif{font-family:'Cormorant Garamond',serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;flex-wrap:wrap;gap:14px;}
+  header h1{margin:0;font-size:1.7rem;color:var(--dove);}
+  header p{margin:2px 0 0;font-size:.85rem;opacity:.6;}
+
+  .gate{max-width:360px;margin:120px auto;text-align:center;}
+  .gate input{width:100%;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--ash);color:var(--dove);font-size:1rem;margin:16px 0;}
+  .gate button{width:100%;padding:14px;border-radius:10px;border:none;background:var(--flame);color:var(--dove);font-weight:600;cursor:pointer;font-size:1rem;}
+  .gate small{opacity:.5;display:block;margin-top:14px;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .tab-btn{background:var(--ash);border:1px solid var(--line);color:var(--cream);padding:10px 18px;border-radius:999px;cursor:pointer;font-size:.9rem;}
+  .tab-btn.active{background:var(--flame);border-color:var(--flame);color:var(--dove);font-weight:600;}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  .stat{background:var(--ash);border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .stat .n{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold);}
+  .stat .l{font-size:.78rem;opacity:.65;}
+
+  table{width:100%;border-collapse:collapse;background:var(--ash);border-radius:14px;overflow:hidden;}
+  th,td{padding:12px 14px;text-align:left;font-size:.88rem;border-bottom:1px solid var(--line);}
+  th{background:var(--ash-2);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;}
+  tr:last-child td{border-bottom:none;}
+  .badge{padding:4px 10px;border-radius:999px;font-size:.75rem;font-weight:600;}
+  .badge.pend{background:rgba(231,176,79,.18);color:var(--warn);}
+  .badge.ok{background:rgba(58,168,85,.18);color:var(--ok);}
+  .badge.checkin{background:rgba(60,140,220,.18);color:#6cb0f2;}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-mini{border:none;border-radius:8px;padding:7px 12px;font-size:.8rem;cursor:pointer;font-weight:600;}
+  .btn-mini.confirm{background:var(--ok);color:#fff;}
+  .btn-mini.wa{background:#25D366;color:#fff;text-decoration:none;display:inline-block;}
+  .btn-mini.link{background:var(--ash-2);color:var(--cream);border:1px solid var(--line);text-decoration:none;display:inline-block;}
+  .filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .filters select, .filters input{background:var(--ash);border:1px solid var(--line);color:var(--cream);padding:9px 12px;border-radius:8px;font-size:.85rem;}
+
+  #scanner-view{display:none;}
+  #reader{max-width:420px;margin:0 auto 20px;border-radius:16px;overflow:hidden;}
+  .scan-result{max-width:420px;margin:0 auto;padding:22px;border-radius:16px;text-align:center;font-size:1rem;display:none;}
+  .scan-result.ok{background:rgba(58,168,85,.15);border:1px solid var(--ok);display:block;}
+  .scan-result.error{background:rgba(200,60,40,.15);border:1px solid #c83c28;display:block;}
+  .scan-result.warn{background:rgba(231,176,79,.15);border:1px solid var(--warn);display:block;}
+  .scan-result h3{margin:0 0 6px;}
+  .checkin-log{max-width:420px;margin:24px auto 0;font-size:.85rem;opacity:.7;}
+  .checkin-log li{padding:6px 0;border-bottom:1px solid var(--line);}
+
+  .empty{text-align:center;padding:60px 20px;opacity:.55;}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <h2 class="serif">Painel da equipe</h2>
+  <p style="opacity:.6;font-size:.9rem;">Enchei-vos do Espírito Santo 2026</p>
+  <input type="password" id="gate-pass" placeholder="Senha da equipe">
+  <button onclick="checarSenha()">Entrar</button>
+  <small>Acesso restrito à equipe organizadora. Esta senha é apenas uma trava simples de tela — a proteção real dos dados deve ser feita pelas regras de segurança do Firestore.</small>
+</div>
+
+<div id="painel" style="display:none;">
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Painel da equipe</h1>
+        <p>Enchei-vos do Espírito Santo 2026 — 6 a 8 de novembro</p>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="lista">📋 Inscrições</button>
+        <button class="tab-btn" data-tab="scanner">📷 Check-in (QR Code)</button>
+      </div>
+    </header>
+
+    <div id="lista-view">
+      <div class="stats">
+        <div class="stat"><div class="n" id="st-total">0</div><div class="l">Inscrições</div></div>
+        <div class="stat"><div class="n" id="st-confirmados">0</div><div class="l">Confirmados</div></div>
+        <div class="stat"><div class="n" id="st-pendentes">0</div><div class="l">Pendentes (Pix)</div></div>
+        <div class="stat"><div class="n" id="st-checkins">0</div><div class="l">Check-ins feitos</div></div>
+      </div>
+
+      <div class="filters">
+        <input type="text" id="filter-search" placeholder="Buscar por nome, e-mail ou código...">
+        <select id="filter-status">
+          <option value="">Todos os status</option>
+          <option value="pendente_pagamento">Pendentes</option>
+          <option value="confirmado">Confirmados</option>
+        </select>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Contato</th><th>Pagamento</th><th>Status</th><th>Check-in</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty-msg" style="display:none;">Nenhuma inscrição encontrada ainda.</div>
+    </div>
+
+    <div id="scanner-view">
+      <div id="reader"></div>
+      <div class="scan-result" id="scan-result"></div>
+      <ul class="checkin-log" id="checkin-log"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Ajuste a mesma configuração usada em index.html */
+const CONFIG = {
+  eventoId: "enchei-vos-espirito-santo-2026",
+  eventoNome: "Enchei-vos do Espírito Santo 2026",
+  whatsappEquipe: "5583900000000",
+  senhaEquipe: "espirito2026", // <-- troque por uma senha real antes de compartilhar o link com a equipe
+  firebaseConfig: {
+    apiKey: "AIzaSyAxLCyqt_8UjZS1VaDWEBfyVk_a2BhtapQ",
+    authDomain: "encheivos2026-a7e0d.firebaseapp.com",
+    projectId: "encheivos2026-a7e0d",
+    storageBucket: "encheivos2026-a7e0d.firebasestorage.app",
+    messagingSenderId: "804491703392",
+    appId: "1:804491703392:web:4a977cbe476a75393e7f05"
+  },
+  urlIngresso: "index.html" // caminho do site público, para montar o link do ingresso
+};
+const COLLECTION = "inscricoes_" + CONFIG.eventoId.replace(/-/g, "_");
+
+let db=null, firebaseOk=false;
+try{
+  firebase.initializeApp(CONFIG.firebaseConfig);
+  db = firebase.firestore();
+  firebaseOk = true;
+}catch(e){ console.warn('Firebase não configurado.', e); }
+
+function checarSenha(){
+  const val = document.getElementById('gate-pass').value;
+  if(val === CONFIG.senhaEquipe){
+    document.getElementById('gate').style.display='none';
+    document.getElementById('painel').style.display='block';
+    carregarInscricoes();
+  } else {
+    alert('Senha incorreta.');
+  }
+}
+document.getElementById('gate-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') checarSenha(); });
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('lista-view').style.display = tab==='lista' ? 'block':'none';
+    document.getElementById('scanner-view').style.display = tab==='scanner' ? 'block':'none';
+    if(tab==='scanner') iniciarScanner();
+  });
+});
+
+let TODAS = [];
+
+async function carregarInscricoes(){
+  if(firebaseOk){
+    db.collection(COLLECTION).orderBy('criadoEm','desc').onSnapshot(snap=>{
+      TODAS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderTabela();
+    }, err=>{
+      console.error(err);
+      document.getElementById('tbody').innerHTML = '';
+      document.getElementById('empty-msg').style.display='block';
+      document.getElementById('empty-msg').textContent = 'Não foi possível carregar os dados. Verifique a configuração do Firebase.';
+    });
+  } else {
+    TODAS = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]').map((d,i)=>({id:'local-'+i, ...d}));
+    renderTabela();
+  }
+}
+
+function waLink(numero, msg){ return `https://wa.me/${numero.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`; }
+
+function linkIngresso(codigo){
+  const base = new URL(CONFIG.urlIngresso, window.location.href);
+  base.searchParams.set('ingresso', codigo);
+  return base.toString();
+}
+
+function renderTabela(){
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const statusFilter = document.getElementById('filter-status').value;
+
+  let lista = TODAS.filter(i=>{
+    const matchSearch = !search || (i.nome||'').toLowerCase().includes(search) || (i.email||'').toLowerCase().includes(search) || (i.codigo||'').toLowerCase().includes(search);
+    const matchStatus = !statusFilter || i.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  document.getElementById('st-total').textContent = TODAS.length;
+  document.getElementById('st-confirmados').textContent = TODAS.filter(i=>i.status==='confirmado').length;
+  document.getElementById('st-pendentes').textContent = TODAS.filter(i=>i.status==='pendente_pagamento').length;
+  document.getElementById('st-checkins').textContent = TODAS.filter(i=>i.checkin).length;
+
+  const tbody = document.getElementById('tbody');
+  document.getElementById('empty-msg').style.display = lista.length ? 'none' : 'block';
+
+  tbody.innerHTML = lista.map(i=>`
+    <tr>
+      <td><strong>${i.nome||'—'}</strong><br><span style="opacity:.5;font-size:.78rem;">${i.codigo||''}</span></td>
+      <td>${i.email||''}<br><span style="opacity:.6;">${i.whatsapp||''}</span></td>
+      <td>${i.formaPagamento==='pix' ? '🔑 Pix' : '💳 Cartão'}</td>
+      <td>${i.status==='confirmado' ? '<span class="badge ok">Confirmado</span>' : '<span class="badge pend">Pendente</span>'}</td>
+      <td>${i.checkin ? '<span class="badge checkin">Feito</span>' : '—'}</td>
+      <td>
+        <div class="row-actions">
+          ${i.status!=='confirmado' ? `<button class="btn-mini confirm" onclick="confirmarPagamento('${i.id}')">Confirmar pagamento</button>` : ''}
+          ${i.status==='confirmado' ? `<a class="btn-mini link" href="${linkIngresso(i.codigo)}" target="_blank">Ver ingresso</a>` : ''}
+          ${i.status==='confirmado' ? `<a class="btn-mini wa" target="_blank" href="${waLink(i.whatsapp||CONFIG.whatsappEquipe, `Olá ${i.nome}! Seu pagamento do retiro ${CONFIG.eventoNome} foi confirmado. Aqui está o link do seu ingresso: ${linkIngresso(i.codigo)}`)}">Enviar link (WhatsApp)</a>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('filter-search').addEventListener('input', renderTabela);
+document.getElementById('filter-status').addEventListener('change', renderTabela);
+
+async function confirmarPagamento(id){
+  if(!confirm('Confirmar o pagamento desta inscrição? Isso libera o ingresso.')) return;
+  if(firebaseOk){
+    await db.collection(COLLECTION).doc(id).update({ status: 'confirmado' });
+  } else {
+    let local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
+    const idx = parseInt(id.replace('local-',''));
+    if(local[idx]){ local[idx].status = 'confirmado'; localStorage.setItem('inscricoes_demo', JSON.stringify(local)); }
+    carregarInscricoes();
+  }
+}
+
+/* ================================ SCANNER DE CHECK-IN ================================ */
+let scannerAtivo = false;
+function iniciarScanner(){
+  if(scannerAtivo) return;
+  scannerAtivo = true;
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 240 },
+    onScanSuccess,
+    ()=>{}
+  ).catch(err=>{
+    document.getElementById('reader').innerHTML = '<p style="text-align:center;opacity:.7;padding:20px;">Não foi possível acessar a câmera. Verifique as permissões do navegador.</p>';
+  });
+
+  let ultimoLido = null, ultimoTs = 0;
+  async function onScanSuccess(codigo){
+    const agora = Date.now();
+    if(codigo === ultimoLido && (agora-ultimoTs) < 3000) return; // evita leitura duplicada
+    ultimoLido = codigo; ultimoTs = agora;
+    await processarCheckin(codigo);
+  }
+}
+
+async function processarCheckin(codigoLido){
+  // o QR do ingresso contém o link completo; extrai o parâmetro "ingresso" se necessário
+  let codigo = codigoLido;
+  try{
+    const url = new URL(codigoLido);
+    const p = url.searchParams.get('ingresso');
+    if(p) codigo = p;
+  }catch(e){ /* não é uma URL, assume que já é o código puro */ }
+
+  const resultEl = document.getElementById('scan-result');
+  let ins = null;
+
+  if(firebaseOk){
+    const snap = await db.collection(COLLECTION).where('codigo','==',codigo).limit(1).get();
+    if(!snap.empty) ins = { id: snap.docs[0].id, ...snap.docs[0].data() };
+  } else {
+    const local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
+    const idx = local.findIndex(i=>i.codigo===codigo);
+    if(idx>=0) ins = { id:'local-'+idx, ...local[idx] };
+  }
+
+  if(!ins){
+    resultEl.className = 'scan-result error';
+    resultEl.innerHTML = `<h3>❌ Ingresso não encontrado</h3><p>Código: ${codigo}</p>`;
+    return;
+  }
+  if(ins.status !== 'confirmado'){
+    resultEl.className = 'scan-result warn';
+    resultEl.innerHTML = `<h3>⚠️ Pagamento pendente</h3><p>${ins.nome} — regularize antes de liberar a entrada.</p>`;
+    return;
+  }
+  if(ins.checkin){
+    resultEl.className = 'scan-result warn';
+    resultEl.innerHTML = `<h3>⚠️ Já fez check-in</h3><p>${ins.nome} já retirou pulseira e kit anteriormente.</p>`;
+    return;
+  }
+
+  if(firebaseOk){
+    await db.collection(COLLECTION).doc(ins.id).update({ checkin: true, checkinEm: firebase.firestore.FieldValue.serverTimestamp() });
+  } else {
+    let local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
+    const idx = parseInt(ins.id.replace('local-',''));
+    local[idx].checkin = true;
+    localStorage.setItem('inscricoes_demo', JSON.stringify(local));
+  }
+
+  resultEl.className = 'scan-result ok';
+  resultEl.innerHTML = `<h3>✓ Check-in liberado</h3><p>${ins.nome}</p><p style="opacity:.7;font-size:.85rem;">Entregar pulseira e kit do evento.</p>`;
+
+  const log = document.getElementById('checkin-log');
+  const li = document.createElement('li');
+  li.textContent = `${new Date().toLocaleTimeString('pt-BR')} — ${ins.nome}`;
+  log.prepend(li);
+}
+</script>
+</body>
+</html>
