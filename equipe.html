@@ -12,7 +12,7 @@
   :root{
     --ink:#170a06; --ash:#241109; --ash-2:#2f150a;
     --flame:#df5a1f; --gold:#e7b04f; --cream:#f4ebdb; --dove:#fffaf0;
-    --line:rgba(231,176,79,.22); --ok:#3aa855; --warn:#e7b04f;
+    --line:rgba(231,176,79,.22); --ok:#3aa855; --warn:#e7b04f; --err:#c83c28;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--ink);color:var(--cream);font-family:'Inter',sans-serif;}
@@ -49,18 +49,31 @@
   .btn-mini.confirm{background:var(--ok);color:#fff;}
   .btn-mini.wa{background:#25D366;color:#fff;text-decoration:none;display:inline-block;}
   .btn-mini.link{background:var(--ash-2);color:var(--cream);border:1px solid var(--line);text-decoration:none;display:inline-block;}
+  .btn-mini.danger{background:transparent;border:1px solid var(--err);color:var(--err);}
+  .btn-mini.danger:hover{background:rgba(200,60,40,.15);}
+  .btn-mini.ghost{background:transparent;border:1px solid var(--line);color:var(--cream);}
   .filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
   .filters select, .filters input{background:var(--ash);border:1px solid var(--line);color:var(--cream);padding:9px 12px;border-radius:8px;font-size:.85rem;}
 
   #scanner-view{display:none;}
   #reader{max-width:420px;margin:0 auto 20px;border-radius:16px;overflow:hidden;}
-  .scan-result{max-width:420px;margin:0 auto;padding:22px;border-radius:16px;text-align:center;font-size:1rem;display:none;}
-  .scan-result.ok{background:rgba(58,168,85,.15);border:1px solid var(--ok);display:block;}
-  .scan-result.error{background:rgba(200,60,40,.15);border:1px solid #c83c28;display:block;}
-  .scan-result.warn{background:rgba(231,176,79,.15);border:1px solid var(--warn);display:block;}
-  .scan-result h3{margin:0 0 6px;}
+  .manual-check{max-width:420px;margin:0 auto 22px;background:var(--ash);border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .manual-check p{margin:0 0 10px;font-size:.85rem;opacity:.7;}
+  .manual-check-row{display:flex;gap:8px;}
+  .manual-check-row input{flex:1;background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:11px 12px;color:var(--dove);font-size:.95rem;}
+  .manual-check-row button{background:var(--flame);border:none;border-radius:8px;padding:0 18px;color:var(--dove);font-weight:600;cursor:pointer;}
+  .scan-result{max-width:420px;margin:0 auto;padding:26px 22px;border-radius:16px;text-align:center;font-size:1rem;display:none;}
+  .scan-result svg{margin-bottom:8px;}
+  .scan-result.ok{background:rgba(58,168,85,.15);border:1px solid var(--ok);display:block;color:var(--ok);}
+  .scan-result.error{background:rgba(200,60,40,.15);border:1px solid var(--err);display:block;color:var(--err);}
+  .scan-result.warn{background:rgba(231,176,79,.15);border:1px solid var(--warn);display:block;color:var(--warn);}
+  .scan-result h3{margin:0 0 6px;color:var(--dove);}
+  .scan-result p{color:var(--cream);}
+  .scan-result .candidatos{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;}
   .checkin-log{max-width:420px;margin:24px auto 0;font-size:.85rem;opacity:.7;}
   .checkin-log li{padding:6px 0;border-bottom:1px solid var(--line);}
+
+  #arquivados-view{display:none;}
 
   .empty{text-align:center;padding:60px 20px;opacity:.55;}
 </style>
@@ -84,7 +97,8 @@
       </div>
       <div class="tabs">
         <button class="tab-btn active" data-tab="lista">📋 Inscrições</button>
-        <button class="tab-btn" data-tab="scanner">📷 Check-in (QR Code)</button>
+        <button class="tab-btn" data-tab="scanner">📷 Check-in</button>
+        <button class="tab-btn" data-tab="arquivados">🗑️ Arquivados</button>
       </div>
     </header>
 
@@ -116,8 +130,28 @@
 
     <div id="scanner-view">
       <div id="reader"></div>
+
+      <div class="manual-check">
+        <p>Não conseguiu ler o QR Code? Digite o código do ingresso, o telefone ou o nome da pessoa:</p>
+        <div class="manual-check-row">
+          <input type="text" id="manual-input" placeholder="Ex: EVE-AB12CD34, (83) 99999-9999 ou nome">
+          <button type="button" onclick="validarManual()">Validar</button>
+        </div>
+      </div>
+
       <div class="scan-result" id="scan-result"></div>
       <ul class="checkin-log" id="checkin-log"></ul>
+    </div>
+
+    <div id="arquivados-view">
+      <p style="opacity:.65;font-size:.88rem;margin-bottom:16px;">Inscrições apagadas pela equipe (enganos, duplicidades etc). Elas não aparecem na lista principal nem contam nas estatísticas, mas continuam guardadas aqui e podem ser restauradas.</p>
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Código</th><th>Contato</th><th>Arquivado em</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="tbody-arquivados"></tbody>
+      </table>
+      <div class="empty" id="empty-arquivados" style="display:none;">Nenhuma inscrição arquivada.</div>
     </div>
   </div>
 </div>
@@ -140,6 +174,12 @@ const CONFIG = {
   urlIngresso: "index.html" // caminho do site público, para montar o link do ingresso
 };
 const COLLECTION = "inscricoes_" + CONFIG.eventoId.replace(/-/g, "_");
+
+const ICONS = {
+  ok: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 21.5 20 H2.5 Z" stroke-linejoin="round"/><path d="M12 9.5v5"/><circle cx="12" cy="17.2" r=".6" fill="currentColor" stroke="none"/></svg>',
+  error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9 9l6 6M15 9l-6 6"/></svg>'
+};
 
 let db=null, firebaseOk=false;
 try{
@@ -167,6 +207,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     const tab = btn.dataset.tab;
     document.getElementById('lista-view').style.display = tab==='lista' ? 'block':'none';
     document.getElementById('scanner-view').style.display = tab==='scanner' ? 'block':'none';
+    document.getElementById('arquivados-view').style.display = tab==='arquivados' ? 'block':'none';
     if(tab==='scanner') iniciarScanner();
   });
 });
@@ -178,6 +219,7 @@ async function carregarInscricoes(){
     db.collection(COLLECTION).orderBy('criadoEm','desc').onSnapshot(snap=>{
       TODAS = snap.docs.map(d=>({id:d.id, ...d.data()}));
       renderTabela();
+      renderArquivados();
     }, err=>{
       console.error(err);
       document.getElementById('tbody').innerHTML = '';
@@ -187,7 +229,18 @@ async function carregarInscricoes(){
   } else {
     TODAS = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]').map((d,i)=>({id:'local-'+i, ...d}));
     renderTabela();
+    renderArquivados();
   }
+}
+
+function salvarLocal(id, campos){
+  let local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
+  const idx = parseInt(id.replace('local-',''));
+  if(local[idx]){
+    Object.assign(local[idx], campos);
+    localStorage.setItem('inscricoes_demo', JSON.stringify(local));
+  }
+  carregarInscricoes();
 }
 
 function waLink(numero, msg){ return `https://wa.me/${numero.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`; }
@@ -202,16 +255,18 @@ function renderTabela(){
   const search = document.getElementById('filter-search').value.toLowerCase();
   const statusFilter = document.getElementById('filter-status').value;
 
-  let lista = TODAS.filter(i=>{
+  const ativas = TODAS.filter(i=>!i.arquivado);
+
+  let lista = ativas.filter(i=>{
     const matchSearch = !search || (i.nome||'').toLowerCase().includes(search) || (i.email||'').toLowerCase().includes(search) || (i.codigo||'').toLowerCase().includes(search);
     const matchStatus = !statusFilter || i.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  document.getElementById('st-total').textContent = TODAS.length;
-  document.getElementById('st-confirmados').textContent = TODAS.filter(i=>i.status==='confirmado').length;
-  document.getElementById('st-pendentes').textContent = TODAS.filter(i=>i.status==='pendente_pagamento').length;
-  document.getElementById('st-checkins').textContent = TODAS.filter(i=>i.checkin).length;
+  document.getElementById('st-total').textContent = ativas.length;
+  document.getElementById('st-confirmados').textContent = ativas.filter(i=>i.status==='confirmado').length;
+  document.getElementById('st-pendentes').textContent = ativas.filter(i=>i.status==='pendente_pagamento').length;
+  document.getElementById('st-checkins').textContent = ativas.filter(i=>i.checkin).length;
 
   const tbody = document.getElementById('tbody');
   document.getElementById('empty-msg').style.display = lista.length ? 'none' : 'block';
@@ -228,10 +283,38 @@ function renderTabela(){
           ${i.status!=='confirmado' ? `<button class="btn-mini confirm" onclick="confirmarPagamento('${i.id}')">Confirmar pagamento</button>` : ''}
           ${i.status==='confirmado' ? `<a class="btn-mini link" href="${linkIngresso(i.codigo)}" target="_blank">Ver ingresso</a>` : ''}
           ${i.status==='confirmado' ? `<a class="btn-mini wa" target="_blank" href="${waLink(i.whatsapp||CONFIG.whatsappEquipe, `Olá ${i.nome}! Seu pagamento do retiro ${CONFIG.eventoNome} foi confirmado. Aqui está o link do seu ingresso: ${linkIngresso(i.codigo)}`)}">Enviar link (WhatsApp)</a>` : ''}
+          <button class="btn-mini danger" onclick="arquivarInscricao('${i.id}')">Apagar</button>
         </div>
       </td>
     </tr>
   `).join('');
+}
+
+function renderArquivados(){
+  const arquivadas = TODAS.filter(i=>i.arquivado);
+  const tbody = document.getElementById('tbody-arquivados');
+  document.getElementById('empty-arquivados').style.display = arquivadas.length ? 'none' : 'block';
+
+  tbody.innerHTML = arquivadas.map(i=>{
+    let quando = '—';
+    if(i.arquivadoEm){
+      const d = i.arquivadoEm.toDate ? i.arquivadoEm.toDate() : new Date(i.arquivadoEm);
+      quando = d.toLocaleString('pt-BR');
+    }
+    return `
+    <tr>
+      <td><strong>${i.nome||'—'}</strong></td>
+      <td style="opacity:.7;">${i.codigo||''}</td>
+      <td>${i.email||''}<br><span style="opacity:.6;">${i.whatsapp||''}</span></td>
+      <td style="opacity:.7;">${quando}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-mini confirm" onclick="restaurarInscricao('${i.id}')">Restaurar</button>
+          <button class="btn-mini danger" onclick="excluirDefinitivo('${i.id}')">Excluir definitivamente</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 document.getElementById('filter-search').addEventListener('input', renderTabela);
@@ -242,14 +325,43 @@ async function confirmarPagamento(id){
   if(firebaseOk){
     await db.collection(COLLECTION).doc(id).update({ status: 'confirmado' });
   } else {
+    salvarLocal(id, { status: 'confirmado' });
+  }
+}
+
+async function arquivarInscricao(id){
+  if(!confirm('Apagar esta inscrição? Ela sai da lista principal, mas fica guardada na aba "Arquivados" e pode ser restaurada depois.')) return;
+  if(firebaseOk){
+    await db.collection(COLLECTION).doc(id).update({
+      arquivado: true,
+      arquivadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } else {
+    salvarLocal(id, { arquivado: true, arquivadoEm: new Date().toISOString() });
+  }
+}
+
+async function restaurarInscricao(id){
+  if(firebaseOk){
+    await db.collection(COLLECTION).doc(id).update({ arquivado: false });
+  } else {
+    salvarLocal(id, { arquivado: false });
+  }
+}
+
+async function excluirDefinitivo(id){
+  if(!confirm('Excluir definitivamente esta inscrição? Essa ação não pode ser desfeita.')) return;
+  if(firebaseOk){
+    await db.collection(COLLECTION).doc(id).delete();
+  } else {
     let local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
     const idx = parseInt(id.replace('local-',''));
-    if(local[idx]){ local[idx].status = 'confirmado'; localStorage.setItem('inscricoes_demo', JSON.stringify(local)); }
+    if(idx>=0){ local.splice(idx,1); localStorage.setItem('inscricoes_demo', JSON.stringify(local)); }
     carregarInscricoes();
   }
 }
 
-/* ================================ SCANNER DE CHECK-IN ================================ */
+/* ================================ CHECK-IN (QR Code, código ou telefone) ================================ */
 let scannerAtivo = false;
 function iniciarScanner(){
   if(scannerAtivo) return;
@@ -261,66 +373,107 @@ function iniciarScanner(){
     onScanSuccess,
     ()=>{}
   ).catch(err=>{
-    document.getElementById('reader').innerHTML = '<p style="text-align:center;opacity:.7;padding:20px;">Não foi possível acessar a câmera. Verifique as permissões do navegador.</p>';
+    document.getElementById('reader').innerHTML = '<p style="text-align:center;opacity:.7;padding:20px;">Não foi possível acessar a câmera. Use o campo abaixo para digitar o código, telefone ou nome.</p>';
   });
 
   let ultimoLido = null, ultimoTs = 0;
-  async function onScanSuccess(codigo){
+  async function onScanSuccess(valor){
     const agora = Date.now();
-    if(codigo === ultimoLido && (agora-ultimoTs) < 3000) return; // evita leitura duplicada
-    ultimoLido = codigo; ultimoTs = agora;
-    await processarCheckin(codigo);
+    if(valor === ultimoLido && (agora-ultimoTs) < 3000) return; // evita leitura duplicada
+    ultimoLido = valor; ultimoTs = agora;
+    await processarValor(valor);
   }
 }
 
-async function processarCheckin(codigoLido){
+document.getElementById('manual-input').addEventListener('keydown', e=>{ if(e.key==='Enter') validarManual(); });
+function validarManual(){
+  const val = document.getElementById('manual-input').value;
+  if(!val.trim()) return;
+  processarValor(val);
+}
+
+/* Encontra candidatos por código do ingresso, telefone (ignorando formatação) ou nome */
+function resolverCandidatos(valorBruto){
+  let valor = (valorBruto || '').trim();
+  if(!valor) return [];
+
   // o QR do ingresso contém o link completo; extrai o parâmetro "ingresso" se necessário
-  let codigo = codigoLido;
   try{
-    const url = new URL(codigoLido);
+    const url = new URL(valor);
     const p = url.searchParams.get('ingresso');
-    if(p) codigo = p;
-  }catch(e){ /* não é uma URL, assume que já é o código puro */ }
+    if(p) valor = p;
+  }catch(e){ /* não é uma URL, segue com o valor original */ }
 
-  const resultEl = document.getElementById('scan-result');
-  let ins = null;
+  const ativas = TODAS.filter(i=>!i.arquivado);
 
-  if(firebaseOk){
-    const snap = await db.collection(COLLECTION).where('codigo','==',codigo).limit(1).get();
-    if(!snap.empty) ins = { id: snap.docs[0].id, ...snap.docs[0].data() };
-  } else {
-    const local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
-    const idx = local.findIndex(i=>i.codigo===codigo);
-    if(idx>=0) ins = { id:'local-'+idx, ...local[idx] };
+  const porCodigo = ativas.filter(i=>(i.codigo||'').toLowerCase() === valor.toLowerCase());
+  if(porCodigo.length) return porCodigo;
+
+  const digits = valor.replace(/\D/g,'');
+  if(digits.length >= 8){
+    const porTelefone = ativas.filter(i=>(i.whatsapp||'').replace(/\D/g,'').endsWith(digits.slice(-8)));
+    if(porTelefone.length) return porTelefone;
   }
 
-  if(!ins){
+  if(valor.length >= 3){
+    const porNome = ativas.filter(i=>(i.nome||'').toLowerCase().includes(valor.toLowerCase()));
+    if(porNome.length) return porNome;
+  }
+
+  return [];
+}
+
+async function processarValor(valor){
+  const resultEl = document.getElementById('scan-result');
+  const candidatos = resolverCandidatos(valor);
+
+  if(candidatos.length === 0){
     resultEl.className = 'scan-result error';
-    resultEl.innerHTML = `<h3>❌ Ingresso não encontrado</h3><p>Código: ${codigo}</p>`;
+    resultEl.innerHTML = `${ICONS.error}<h3>Não encontrado</h3><p>Verifique o código, telefone ou nome informado.</p>`;
+    return;
+  }
+
+  if(candidatos.length > 1){
+    resultEl.className = 'scan-result warn';
+    resultEl.innerHTML = `${ICONS.warn}<h3>Mais de uma pessoa encontrada</h3><p>Selecione quem está chegando:</p>` +
+      `<div class="candidatos">` +
+      candidatos.map(c=>`<button class="btn-mini confirm" onclick="finalizarCheckin('${c.id}')">${c.nome}</button>`).join('') +
+      `</div>`;
+    return;
+  }
+
+  await finalizarCheckin(candidatos[0].id);
+}
+
+async function finalizarCheckin(id){
+  const resultEl = document.getElementById('scan-result');
+  const ins = TODAS.find(i=>i.id===id);
+
+  if(!ins || ins.arquivado){
+    resultEl.className = 'scan-result error';
+    resultEl.innerHTML = `${ICONS.error}<h3>Ingresso não encontrado</h3>`;
     return;
   }
   if(ins.status !== 'confirmado'){
     resultEl.className = 'scan-result warn';
-    resultEl.innerHTML = `<h3>⚠️ Pagamento pendente</h3><p>${ins.nome} — regularize antes de liberar a entrada.</p>`;
+    resultEl.innerHTML = `${ICONS.warn}<h3>Pagamento pendente</h3><p>${ins.nome} — regularize antes de liberar a entrada.</p>`;
     return;
   }
   if(ins.checkin){
     resultEl.className = 'scan-result warn';
-    resultEl.innerHTML = `<h3>⚠️ Já fez check-in</h3><p>${ins.nome} já retirou pulseira e kit anteriormente.</p>`;
+    resultEl.innerHTML = `${ICONS.warn}<h3>Já fez check-in</h3><p>${ins.nome} já retirou pulseira e kit anteriormente.</p>`;
     return;
   }
 
   if(firebaseOk){
     await db.collection(COLLECTION).doc(ins.id).update({ checkin: true, checkinEm: firebase.firestore.FieldValue.serverTimestamp() });
   } else {
-    let local = JSON.parse(localStorage.getItem('inscricoes_demo') || '[]');
-    const idx = parseInt(ins.id.replace('local-',''));
-    local[idx].checkin = true;
-    localStorage.setItem('inscricoes_demo', JSON.stringify(local));
+    salvarLocal(ins.id, { checkin: true, checkinEm: new Date().toISOString() });
   }
 
   resultEl.className = 'scan-result ok';
-  resultEl.innerHTML = `<h3>✓ Check-in liberado</h3><p>${ins.nome}</p><p style="opacity:.7;font-size:.85rem;">Entregar pulseira e kit do evento.</p>`;
+  resultEl.innerHTML = `${ICONS.ok}<h3>Check-in liberado</h3><p>${ins.nome}</p><p style="opacity:.7;font-size:.85rem;">Entregar pulseira e kit do evento.</p>`;
+  document.getElementById('manual-input').value = '';
 
   const log = document.getElementById('checkin-log');
   const li = document.createElement('li');

@@ -631,7 +631,7 @@ function addTicketBlock(){
     </div>
     <div class="field">
       <label>WhatsApp</label>
-      <input type="tel" name="whatsapp" required placeholder="(83) 99999-9999">
+      <input type="tel" name="whatsapp" required placeholder="(83) 9 9999-9999" maxlength="16" pattern="\(\d{2}\) \d \d{4}-\d{4}" title="Use o formato (99) 9 9999-9999">
     </div>
   `;
   ticketsContainer.appendChild(div);
@@ -639,8 +639,19 @@ function addTicketBlock(){
   const rm = div.querySelector('.rm');
   if(rm) rm.addEventListener('click', ()=>{ div.remove(); updateTotals(); });
 
+  div.querySelector('input[name="whatsapp"]').addEventListener('input', formatarTelefoneInput);
   div.querySelector('input[name="nome"]').addEventListener('input', updateTotals);
   updateTotals();
+}
+
+function formatarTelefoneInput(e){
+  let digitos = e.target.value.replace(/\D/g,'').slice(0,11);
+  let formatado = digitos;
+  if(digitos.length > 0) formatado = '(' + digitos.slice(0,2);
+  if(digitos.length >= 2) formatado += ') ' + digitos.slice(2,3);
+  if(digitos.length >= 3) formatado += ' ' + digitos.slice(3,7);
+  if(digitos.length >= 7) formatado += '-' + digitos.slice(7,11);
+  e.target.value = formatado;
 }
 
 function updateTotals(){
@@ -679,6 +690,22 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
   }
   if(nomes.some(n=>n.length < 3)){
     showMsg('Preencha o nome completo de todos os participantes.', 'error');
+    return;
+  }
+
+  // validação: telefone no formato (99) 9 9999-9999
+  const telefoneRegex = /^\(\d{2}\) \d \d{4}-\d{4}$/;
+  const telefoneInvalido = blocks.some(b => !telefoneRegex.test(b.querySelector('input[name="whatsapp"]').value.trim()));
+  if(telefoneInvalido){
+    showMsg('Preencha o WhatsApp de todos os participantes no formato (99) 9 9999-9999.', 'error');
+    return;
+  }
+
+  // validação: e-mail com formato básico válido (precisa de @ e domínio)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailInvalido = blocks.some(b => !emailRegex.test(b.querySelector('input[name="email"]').value.trim()));
+  if(emailInvalido){
+    showMsg('Preencha um e-mail válido para todos os participantes.', 'error');
     return;
   }
 
@@ -825,9 +852,32 @@ async function carregarIngresso(codigo){
     </div>
     <p style="font-size:.85rem;opacity:.6;margin-top:14px;">Código: ${ins.codigo}</p>
     <p style="font-size:.85rem;opacity:.6;">Apresente este QR Code na credenciamento para retirar sua pulseira e kit.</p>
+    <button type="button" class="btn small ghost" id="btn-compartilhar" style="margin-top:20px;">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7l7.4-4.2M8.3 13.3l7.4 4.2"/></svg>
+      Compartilhar ingresso
+    </button>
   `;
   document.getElementById('ingresso-logo').src = document.querySelector('.topbar .brand img').src;
   new QRCode(document.getElementById('ingresso-qr'), { text: codigo, width: 200, height: 200, colorDark:"#170a06", colorLight:"#fffaf0" });
+
+  document.getElementById('btn-compartilhar').addEventListener('click', async ()=>{
+    const url = window.location.href;
+    const btn = document.getElementById('btn-compartilhar');
+    if(navigator.share){
+      try{
+        await navigator.share({ title: CONFIG.eventoNome, text: `Ingresso de ${ins.nome} — ${CONFIG.eventoNome}`, url });
+      }catch(e){ /* usuário cancelou o compartilhamento, sem problema */ }
+    } else {
+      try{
+        await navigator.clipboard.writeText(url);
+        const original = btn.innerHTML;
+        btn.innerHTML = 'Link copiado!';
+        setTimeout(()=>{ btn.innerHTML = original; }, 2200);
+      }catch(e){
+        alert('Copie o link para compartilhar:\n' + url);
+      }
+    }
+  });
 }
 
 /* ================================ ROTEAMENTO INICIAL ================================ */
