@@ -229,7 +229,7 @@
 
   /* pagamento pix / confirmação */
   .pay-panel{background:var(--ash);border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center;}
-  .pay-panel .qr-box{background:var(--dove);display:inline-block;padding:14px;border-radius:14px;margin:18px 0;}
+  .qr-box{background:var(--dove);display:inline-flex;padding:14px;border-radius:14px;margin:18px 0;}
   .pix-code{
     background:var(--ink);border:1px dashed var(--line);border-radius:10px;
     padding:12px 14px;font-size:.82rem;word-break:break-all;font-family:monospace;color:var(--gold-soft);
@@ -816,13 +816,17 @@ async function carregarIngresso(codigo){
     : '<span class="status-pill pend"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg> Aguardando pagamento</span>';
 
   cont.innerHTML = `
+    <img id="ingresso-logo" alt="${CONFIG.eventoNome}" style="height:56px;width:auto;margin:0 auto 22px;display:block;">
     ${statusLabel}
     <h3 class="serif" style="font-size:1.8rem;margin:16px 0 4px;">${ins.nome}</h3>
     <p style="opacity:.7;margin:0 0 20px;">${CONFIG.eventoNome} · 6 a 8 de novembro de 2026</p>
-    <div class="qr-box" id="ingresso-qr"></div>
+    <div style="display:flex;justify-content:center;">
+      <div class="qr-box" id="ingresso-qr"></div>
+    </div>
     <p style="font-size:.85rem;opacity:.6;margin-top:14px;">Código: ${ins.codigo}</p>
     <p style="font-size:.85rem;opacity:.6;">Apresente este QR Code na credenciamento para retirar sua pulseira e kit.</p>
   `;
+  document.getElementById('ingresso-logo').src = document.querySelector('.topbar .brand img').src;
   new QRCode(document.getElementById('ingresso-qr'), { text: codigo, width: 200, height: 200, colorDark:"#170a06", colorLight:"#fffaf0" });
 }
 
