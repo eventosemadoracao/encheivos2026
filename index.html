@@ -572,6 +572,22 @@
   </div>
 </div>
 
+<!-- ============ VIEW: CARTÃO — AGUARDANDO CONFIRMAÇÃO DA EQUIPE ============ -->
+<div id="view-cartao-pendente" style="display:none;">
+  <div class="wrap" style="padding:120px 0 80px;">
+    <div class="pay-panel" style="max-width:480px;margin:0 auto;">
+      <span class="status-pill pend"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg> Aguardando confirmação</span>
+      <h3 class="serif" style="font-size:1.6rem;margin:18px 0 4px;">Pedido recebido!</h3>
+      <p style="opacity:.75;font-size:.92rem;">Sua inscrição foi registrada com pagamento por cartão. Nossa equipe entrará em contato pelo WhatsApp para finalizar o pagamento.</p>
+      <p style="font-size:.85rem;opacity:.7;margin-top:22px;">
+        Assim que o pagamento for confirmado pela equipe, você recebe o link do(s) seu(s) ingresso(s) por e-mail e WhatsApp. O QR Code de acesso só é liberado depois dessa confirmação.
+      </p>
+      <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-cartao-wa" target="_blank" rel="noopener" href="#">Falar com a equipe no WhatsApp</a>
+      <p style="font-size:.78rem;opacity:.5;margin-top:24px;">Número do pedido: <strong id="pedido-id-display-cartao">—</strong></p>
+    </div>
+  </div>
+</div>
+
 <!-- ============ VIEW: INGRESSO INDIVIDUAL (via ?ingresso=CODIGO) ============ -->
 <div id="view-ingresso" style="display:none;">
   <div class="wrap" style="padding:130px 0 80px;">
@@ -856,7 +872,7 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     valor: CONFIG.valorIngresso,
     eventoId: CONFIG.eventoId,
     formaPagamento,
-    status: formaPagamento === 'cartao' ? 'confirmado' : 'pendente_pagamento',
+    status: 'pendente_pagamento',
     checkin: false,
     checkinEm: null,
     codigo: gerarCodigo(),
@@ -886,7 +902,7 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     if(formaPagamento === 'pix'){
       mostrarTelaPix(pedidoId, inscricoes);
     } else {
-      mostrarIngressosGerados(inscricoes);
+      mostrarTelaCartaoPendente(pedidoId, inscricoes);
     }
   } catch(err){
     console.error(err);
@@ -897,10 +913,13 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
 });
 
 function switchView(id){
-  ['view-landing','view-pagamento','view-confirmado','view-ingresso'].forEach(v=>{
+  ['view-landing','view-pagamento','view-confirmado','view-ingresso','view-cartao-pendente'].forEach(v=>{
     document.getElementById(v).style.display = (v===id) ? 'block' : 'none';
   });
   document.querySelector('.topbar').style.display = (id === 'view-ingresso') ? 'none' : 'flex';
+  // garante que o bloqueio de rolagem do modal de inscrição não fique preso ao trocar de tela
+  document.body.classList.remove('modal-open');
+  inscricaoModal.classList.remove('open');
   window.scrollTo(0,0);
 }
 
@@ -924,6 +943,15 @@ function mostrarTelaPix(pedidoId, inscricoes){
   );
 
   switchView('view-pagamento');
+}
+
+function mostrarTelaCartaoPendente(pedidoId, inscricoes){
+  const nomes = inscricoes.map(i=>i.nome).join(', ');
+  document.getElementById('pedido-id-display-cartao').textContent = pedidoId;
+  document.getElementById('send-cartao-wa').href = waLink(
+    `Olá! Acabei de fazer o pedido ${pedidoId} do retiro ${CONFIG.eventoNome} com pagamento por cartão, para: ${nomes}. Como faço para finalizar o pagamento?`
+  );
+  switchView('view-cartao-pendente');
 }
 
 function linkIngresso(codigo){
