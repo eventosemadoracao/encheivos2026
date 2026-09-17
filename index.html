@@ -133,14 +133,13 @@
   .section-head h2{font-size:clamp(1.9rem,3.6vw,2.6rem);font-weight:600;margin:0 0 12px;color:var(--dove);}
   .section-head p{color:var(--cream);opacity:.82;font-size:1.02rem;margin:0;}
 
-  /* investimento — título específico desta seção (mesma lógica tipográfica de "Sobre o Retiro"), sem tocar em .section-head h2 global */
-  #investimento .section-head{margin-bottom:36px;}
-  #investimento h2{
-    font-size:clamp(1.9rem,1.5rem + 1.6vw,2.5rem);
-    line-height:1.1;
-    font-weight:600;
+  /* investimento — eyebrow no mesmo padrão das demais seções (mesma lógica tipográfica de "Sobre o Retiro") */
+  #investimento .section-head{margin-bottom:28px;}
+  #investimento .section-tag{
+    font-size:clamp(.74rem,.7rem + .2vw,.82rem);
+    letter-spacing:.09em;
     margin:0;
-    color:var(--dove);
+    color:var(--flame);opacity:1;
   }
 
   /* sobre — sistema tipográfico dedicado a esta seção (hierarquia: eyebrow > título > texto > ação) */
@@ -181,12 +180,27 @@
     text-decoration:none;
   }
 
+  /* eyebrow consistente em todas as seções — mesmo tratamento de "Sobre o Retiro" */
+  #inscricao .section-tag{
+    font-size:clamp(.74rem,.7rem + .2vw,.82rem);
+    letter-spacing:.09em;
+    margin:0 0 14px;
+    color:var(--flame);opacity:1;
+  }
+  #faq .section-tag{
+    font-size:clamp(.74rem,.7rem + .2vw,.82rem);
+    letter-spacing:.09em;
+    margin:0 0 14px;
+    color:var(--flame);opacity:1;
+  }
+
   /* programação — sistema tipográfico coerente com "Sobre o Retiro" */
   #programacao .section-head{margin-bottom:28px;}
   #programacao .section-tag{
     font-size:clamp(.74rem,.7rem + .2vw,.82rem);
     letter-spacing:.09em;
     margin:0 0 14px;
+    color:var(--flame);opacity:1;
   }
   #programacao h2{
     font-size:clamp(1.45rem,1.45rem + .8vw,2rem);
@@ -349,6 +363,37 @@
     .ticket-card .btn{grid-column:1 / -1;}
     .contact-box{flex-direction:column;text-align:center;}
   }
+
+  /* modal de inscrição — a seção some do fluxo normal e passa a abrir por cima da página via CTA */
+  .modal-overlay{
+    display:none;
+    position:fixed;inset:0;z-index:100;
+    background:rgba(10,4,2,.8);
+    padding:32px 24px;
+    overflow-y:auto;
+  }
+  .modal-overlay.open{display:block;}
+  .modal-panel{
+    position:relative;
+    background:linear-gradient(155deg, var(--ash-2), var(--ash));
+    border:1px solid var(--line);border-radius:22px;
+    max-width:640px;margin:24px auto;padding:40px 40px 36px;
+    box-shadow:var(--shadow);
+  }
+  .modal-close{
+    position:absolute;top:16px;right:16px;
+    width:36px;height:36px;border-radius:50%;
+    background:transparent;border:1px solid var(--line);color:var(--cream);
+    font-size:1.4rem;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    padding:0;font-family:inherit;
+  }
+  .modal-close:hover{background:rgba(255,255,255,.08);}
+  body.modal-open{overflow:hidden;}
+  @media (max-width:600px){
+    .modal-overlay{padding:0;}
+    .modal-panel{max-width:none;margin:0;min-height:100%;border-radius:0;padding:32px 20px 28px;}
+  }
 </style>
 </head>
 <body>
@@ -392,7 +437,7 @@
   <section id="investimento">
     <div class="wrap">
       <div class="section-head">
-        <h2>Investimento</h2>
+        <p class="section-tag">INVESTIMENTO</p>
       </div>
       <div class="price-card">
         <p class="price-kicker">Sua vaga garantida por</p>
@@ -409,11 +454,12 @@
       <p style="font-size:.72rem;opacity:.6;margin-top:14px;font-style:italic;line-height:1.5;">* Valor de referência para fins de planejamento — sujeito a confirmação.</p>
     </div>
   </section>
-  <section id="inscricao">
-    <div class="wrap">
+  <div id="inscricao" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inscricao-titulo">
+    <div class="modal-panel">
+      <button type="button" class="modal-close" id="inscricao-close" aria-label="Fechar">&times;</button>
       <div class="section-head">
         <p class="section-tag">INSCRIÇÃO</p>
-        <h2>Faça AGORA a sua inscrição</h2>
+        <h2 id="inscricao-titulo">Faça AGORA a sua inscrição</h2>
         <p>Você pode inscrever mais de uma pessoa no mesmo pedido. Cada inscrição precisa de um nome completo próprio, mesmo que o e-mail e o WhatsApp de contato sejam os mesmos.</p>
       </div>
 
@@ -446,7 +492,7 @@
         <p style="font-size:.82rem;opacity:.55;margin-top:14px;">* Nossa equipe enviará o seu acesso pelo WhatsApp de cadastro em até 24 horas.</p>
       </form>
     </div>
-  </section>
+  </div>
 
   <section id="programacao">
     <div class="wrap">
@@ -462,6 +508,7 @@
       </div>
       <ul class="timeline" id="timeline"></ul>
       <p class="prog-note">* Horários sujeitos a pequenos ajustes.</p>
+      <a href="#inscricao" class="btn" style="margin-top:26px;">Eu quero participar</a>
     </div>
   </section>
 
@@ -641,6 +688,28 @@ document.querySelectorAll('.day-btn').forEach(btn=>{
   });
 });
 renderProgramacao(1);
+
+/* ---------------------------- modal de inscrição --------------------------- */
+const inscricaoModal = document.getElementById('inscricao');
+function openInscricaoModal(e){
+  if(e) e.preventDefault();
+  inscricaoModal.classList.add('open');
+  document.body.classList.add('modal-open');
+}
+function closeInscricaoModal(){
+  inscricaoModal.classList.remove('open');
+  document.body.classList.remove('modal-open');
+}
+document.querySelectorAll('a[href="#inscricao"]').forEach(a=>{
+  a.addEventListener('click', openInscricaoModal);
+});
+document.getElementById('inscricao-close').addEventListener('click', closeInscricaoModal);
+inscricaoModal.addEventListener('click', (e)=>{
+  if(e.target === inscricaoModal) closeInscricaoModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && inscricaoModal.classList.contains('open')) closeInscricaoModal();
+});
 
 /* ---------------------------- FAQ (simulado) --------------------------- */
 const FAQ = [
