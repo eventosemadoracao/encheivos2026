@@ -5,6 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Enchei-vos do Espírito Santo 2026 — Inscrições</title>
 
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JR4YEWJV4P"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-JR4YEWJV4P');
+</script>
+
+<!-- Meta Pixel -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1174484453214141');
+  fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1174484453214141&ev=PageView&noscript=1"
+/></noscript>
+
 <!-- Preview de link (WhatsApp, Facebook, etc.) — troque a URL abaixo pelo domínio final assim que o site estiver publicado -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Enchei-vos do Espírito Santo 2026">
@@ -711,6 +737,8 @@ function openInscricaoModal(e){
   if(e) e.preventDefault();
   inscricaoModal.classList.add('open');
   document.body.classList.add('modal-open');
+  if(typeof gtag === 'function') gtag('event', 'abriu_inscricao');
+  if(typeof fbq === 'function') fbq('track', 'Lead');
 }
 function closeInscricaoModal(){
   inscricaoModal.classList.remove('open');
@@ -879,6 +907,22 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     criadoEm: firebaseOk ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
   }));
 
+  if(typeof gtag === 'function'){
+    gtag('event', 'inicio_inscricao', {
+      forma_pagamento: formaPagamento,
+      quantidade_inscricoes: inscricoes.length,
+      valor: inscricoes.length * CONFIG.valorIngresso
+    });
+  }
+  if(typeof fbq === 'function'){
+    fbq('track', 'InitiateCheckout', {
+      value: inscricoes.length * CONFIG.valorIngresso,
+      currency: 'BRL',
+      num_items: inscricoes.length,
+      content_name: formaPagamento
+    });
+  }
+
   const submitBtn = document.getElementById('submit-btn');
   submitBtn.disabled = true;
   submitBtn.textContent = 'Enviando...';
@@ -898,6 +942,23 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     }
 
     document.getElementById('pedido-id-display').textContent = pedidoId;
+
+    if(typeof gtag === 'function'){
+      gtag('event', formaPagamento === 'pix' ? 'conversao_pix' : 'conversao_cartao', {
+        pedido_id: pedidoId,
+        quantidade_inscricoes: inscricoes.length,
+        valor: inscricoes.length * CONFIG.valorIngresso,
+        currency: 'BRL'
+      });
+    }
+    if(typeof fbq === 'function'){
+      fbq('track', 'Purchase', {
+        value: inscricoes.length * CONFIG.valorIngresso,
+        currency: 'BRL',
+        num_items: inscricoes.length,
+        content_name: formaPagamento
+      });
+    }
 
     if(formaPagamento === 'pix'){
       mostrarTelaPix(pedidoId, inscricoes);
