@@ -486,7 +486,7 @@
         <div class="amount"><small>R$</small> <span id="preco-atual">100,00</span></div>
         <p class="amount-unit">por pessoa</p>
         <div class="lote-countdown-box" id="lote-countdown-box" style="display:none;">
-          <p class="lote-countdown-label">O preço sobe para <strong>R$ <span id="proximo-preco"></span></strong> em:</p>
+          <p class="lote-countdown-label">Esse valor sobe em:</p>
           <div class="lote-countdown" id="lote-countdown"></div>
         </div>
         <p class="price-tagline">Esse valor ajuda a cobrir a estrutura do retiro. Tudo o que Deus fará em você é pura graça.</p>
@@ -735,7 +735,6 @@ function renderPrecoELote(){
   if(elPreco) elPreco.textContent = formatarPreco(lote.valor);
 
   const box = document.getElementById('lote-countdown-box');
-  const elProximoPreco = document.getElementById('proximo-preco');
   const elCountdown = document.getElementById('lote-countdown');
   if(!box || !elCountdown) return;
 
@@ -753,7 +752,6 @@ function renderPrecoELote(){
   }
 
   box.style.display = 'block';
-  if(elProximoPreco) elProximoPreco.textContent = formatarPreco(proximo.valor);
 
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
