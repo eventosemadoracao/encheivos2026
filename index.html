@@ -835,6 +835,33 @@ function formatarTelefoneInput(e){
   e.target.value = formatado;
 }
 
+/* Validação semântica do telefone (WhatsApp): apenas celular — DDD real, começa com 9,
+   sem dígitos repetidos, exatamente 11 dígitos.
+   Retorna null quando válido, ou uma mensagem de erro específica quando inválido. */
+function validarTelefone(valorFormatado){
+  const digitos = (valorFormatado || '').replace(/\D/g, '');
+
+  if(digitos.length !== 11){
+    return 'Preencha o WhatsApp completo, com DDD e celular de 9 dígitos — formato (99) 9 9999-9999.';
+  }
+
+  const ddd = parseInt(digitos.slice(0,2), 10);
+  if(ddd < 11 || ddd > 99){
+    return 'O DDD informado não é válido. Use um DDD real, de 11 a 99.';
+  }
+
+  if(digitos.charAt(2) !== '9'){
+    return 'Número de celular deve começar com 9 após o DDD.';
+  }
+
+  const corpo = digitos.slice(2);
+  if(/^(\d)\1+$/.test(corpo)){
+    return 'Esse número de WhatsApp não parece válido. Verifique os dígitos digitados.';
+  }
+
+  return null;
+}
+
 function updateTotals(){
   const n = ticketsContainer.children.length;
   document.getElementById('ticket-count-label').textContent = `${n} inscrição${n>1?'ões':''}`;
@@ -874,11 +901,12 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     return;
   }
 
-  // validação: telefone no formato (99) 9 9999-9999
-  const telefoneRegex = /^\(\d{2}\) \d \d{4}-\d{4}$/;
-  const telefoneInvalido = blocks.some(b => !telefoneRegex.test(b.querySelector('input[name="whatsapp"]').value.trim()));
-  if(telefoneInvalido){
-    showMsg('Preencha o WhatsApp de todos os participantes no formato (99) 9 9999-9999.', 'error');
+  // validação: DDD real, sem dígitos repetidos (ex: (00) 00000-0000), 10 ou 11 dígitos
+  const erroTelefone = blocks
+    .map(b => validarTelefone(b.querySelector('input[name="whatsapp"]').value.trim()))
+    .find(erro => erro);
+  if(erroTelefone){
+    showMsg(erroTelefone, 'error');
     return;
   }
 
