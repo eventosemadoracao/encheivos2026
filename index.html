@@ -297,6 +297,12 @@
     margin:4px 0 22px;padding:14px 12px;border-radius:14px;
     background:rgba(223,90,31,.1);border:1px solid rgba(223,90,31,.3);
   }
+  .aviso-comprovante{
+    margin:18px 0 0;padding:14px 16px;border-radius:12px;text-align:left;
+    background:rgba(231,176,79,.12);border:1px solid rgba(231,176,79,.4);
+    font-size:.85rem;opacity:.9;line-height:1.55;
+  }
+  .aviso-comprovante strong{color:var(--gold);}
   .lote-countdown-label{margin:0 0 10px;font-size:clamp(.78rem,.75rem + .12vw,.86rem);opacity:.85;}
   .lote-countdown-label strong{color:var(--flame);}
   .lote-countdown{display:flex;align-items:center;justify-content:center;gap:14px;}
@@ -497,7 +503,6 @@
         </div>
         <a href="#inscricao" class="btn" style="margin-top:22px;width:100%;justify-content:center;">Fazer minha inscrição</a>
       </div>
-      <p style="font-size:.72rem;opacity:.6;margin-top:14px;font-style:italic;line-height:1.5;">* Valor de referência para fins de planejamento — sujeito a confirmação.</p>
     </div>
   </section>
   <div id="inscricao" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inscricao-titulo">
@@ -596,10 +601,9 @@
       <div class="qr-box"><div id="pix-qr"></div></div>
       <div class="pix-code" id="pix-code-text">00020126...</div>
       <button type="button" class="btn small ghost" id="copy-pix">Copiar código Pix</button>
-      <p style="font-size:.85rem;opacity:.7;margin-top:22px;">
-        Após o pagamento, envie o comprovante para a equipe pelo WhatsApp para agilizar a confirmação.
-        Assim que confirmado, você recebe o link do(s) seu(s) ingresso(s) por e-mail e WhatsApp.
-      </p>
+      <div class="aviso-comprovante">
+        <strong>Importante:</strong> após pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
+      </div>
       <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-proof-wa" target="_blank" rel="noopener" href="#">Enviar comprovante no WhatsApp</a>
       <p style="font-size:.78rem;opacity:.5;margin-top:24px;">Número do pedido: <strong id="pedido-id-display">—</strong></p>
     </div>
@@ -624,11 +628,12 @@
     <div class="pay-panel" style="max-width:480px;margin:0 auto;">
       <span class="status-pill pend"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg> Aguardando confirmação</span>
       <h3 class="serif" style="font-size:1.6rem;margin:18px 0 4px;">Pedido recebido!</h3>
-      <p style="opacity:.75;font-size:.92rem;">Sua inscrição foi registrada com pagamento por cartão. Nossa equipe entrará em contato pelo WhatsApp para finalizar o pagamento.</p>
-      <p style="font-size:.85rem;opacity:.7;margin-top:22px;">
-        Assim que o pagamento for confirmado pela equipe, você recebe o link do(s) seu(s) ingresso(s) por e-mail e WhatsApp. O QR Code de acesso só é liberado depois dessa confirmação.
-      </p>
-      <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-cartao-wa" target="_blank" rel="noopener" href="#">Falar com a equipe no WhatsApp</a>
+      <p style="opacity:.75;font-size:.92rem;">Sua inscrição foi registrada com pagamento por cartão. Finalize o pagamento no link abaixo — o valor pode ser parcelado, com juros da operadora do seu cartão.</p>
+      <a class="btn small" style="margin-top:18px;width:100%;justify-content:center;" id="pagar-cartao-link" target="_blank" rel="noopener" href="#">Pagar com cartão agora</a>
+      <div class="aviso-comprovante">
+        <strong>Importante:</strong> depois de pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
+      </div>
+      <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-cartao-wa" target="_blank" rel="noopener" href="#">Enviar comprovante no WhatsApp</a>
       <p style="font-size:.78rem;opacity:.5;margin-top:24px;">Número do pedido: <strong id="pedido-id-display-cartao">—</strong></p>
     </div>
   </div>
@@ -673,9 +678,9 @@ const COLLECTION = "inscricoes_" + CONFIG.eventoId.replace(/-/g, "_");
    automaticamente com base na data/hora atual — não precisa trocar nada
    manualmente quando um lote vira o outro. Horário de referência: João Pessoa (-03:00). */
 const LOTES = [
-  { nome: "Lote de Lançamento", valor: 55.00, inicio: new Date("2020-01-01T00:00:00-03:00"), fim: new Date("2026-09-27T23:59:59-03:00") },
-  { nome: "2º Lote",            valor: 65.00, inicio: new Date("2026-09-28T00:00:00-03:00"), fim: new Date("2026-10-18T23:59:59-03:00") },
-  { nome: "3º Lote",            valor: 75.00, inicio: new Date("2026-10-19T00:00:00-03:00"), fim: new Date("2026-11-08T23:59:59-03:00") }
+  { nome: "Lote de Lançamento", valor: 55.00, inicio: new Date("2020-01-01T00:00:00-03:00"), fim: new Date("2026-09-27T23:59:59-03:00"), linkCartao: "https://pag.ae/82bifhmVo" },
+  { nome: "2º Lote",            valor: 65.00, inicio: new Date("2026-09-28T00:00:00-03:00"), fim: new Date("2026-10-18T23:59:59-03:00"), linkCartao: "https://pag.ae/82bifU763" },
+  { nome: "3º Lote",            valor: 75.00, inicio: new Date("2026-10-19T00:00:00-03:00"), fim: new Date("2026-11-08T23:59:59-03:00"), linkCartao: "https://pag.ae/82biidBCQ" }
 ];
 
 function loteAtual(){
@@ -1182,8 +1187,9 @@ function mostrarTelaPix(pedidoId, inscricoes){
 function mostrarTelaCartaoPendente(pedidoId, inscricoes){
   const nomes = inscricoes.map(i=>i.nome).join(', ');
   document.getElementById('pedido-id-display-cartao').textContent = pedidoId;
+  document.getElementById('pagar-cartao-link').href = loteAtual().linkCartao;
   document.getElementById('send-cartao-wa').href = waLink(
-    `Olá! Acabei de fazer o pedido ${pedidoId} do retiro ${CONFIG.eventoNome} com pagamento por cartão, para: ${nomes}. Como faço para finalizar o pagamento?`
+    `Olá! Acabei de fazer o pedido ${pedidoId} do retiro ${CONFIG.eventoNome} com pagamento por cartão, para: ${nomes}. Segue o comprovante em anexo.`
   );
   switchView('view-cartao-pendente');
 }
