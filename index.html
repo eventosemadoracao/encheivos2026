@@ -298,11 +298,20 @@
     background:rgba(223,90,31,.1);border:1px solid rgba(223,90,31,.3);
   }
   .aviso-comprovante{
-    margin:18px 0 0;padding:14px 16px;border-radius:12px;text-align:left;
-    background:rgba(231,176,79,.12);border:1px solid rgba(231,176,79,.4);
-    font-size:.85rem;opacity:.9;line-height:1.55;
+    margin:20px 0 0;padding:18px 20px;border-radius:14px;text-align:left;
+    background:rgba(223,90,31,.16);border:2px solid var(--flame);
+    font-size:.98rem;line-height:1.6;font-weight:600;color:var(--dove);
+    box-shadow:0 0 0 4px rgba(223,90,31,.08);
   }
-  .aviso-comprovante strong{color:var(--gold);}
+  .aviso-comprovante .aviso-titulo{
+    display:flex;align-items:center;gap:8px;
+    font-size:clamp(1rem,.95rem + .2vw,1.12rem);font-weight:800;color:var(--flame);
+    margin:0 0 8px;text-transform:uppercase;letter-spacing:.03em;
+  }
+  .aviso-comprovante strong{color:var(--flame);}
+  @media (max-width:420px){
+    .aviso-comprovante{padding:15px 16px;font-size:.92rem;}
+  }
   .lote-countdown-label{margin:0 0 10px;font-size:clamp(.78rem,.75rem + .12vw,.86rem);opacity:.85;}
   .lote-countdown-label strong{color:var(--flame);}
   .lote-countdown{display:flex;align-items:center;justify-content:center;gap:14px;}
@@ -602,7 +611,8 @@
       <div class="pix-code" id="pix-code-text">00020126...</div>
       <button type="button" class="btn small ghost" id="copy-pix">Copiar código Pix</button>
       <div class="aviso-comprovante">
-        <strong>Importante:</strong> após pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
+        <p class="aviso-titulo">⚠️ Atenção — envio obrigatório</p>
+        Após pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
       </div>
       <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-proof-wa" target="_blank" rel="noopener" href="#">Enviar comprovante no WhatsApp</a>
       <p style="font-size:.78rem;opacity:.5;margin-top:24px;">Número do pedido: <strong id="pedido-id-display">—</strong></p>
@@ -631,7 +641,8 @@
       <p style="opacity:.75;font-size:.92rem;">Sua inscrição foi registrada com pagamento por cartão. Finalize o pagamento no link abaixo — o valor pode ser parcelado, com juros da operadora do seu cartão.</p>
       <a class="btn small" style="margin-top:18px;width:100%;justify-content:center;" id="pagar-cartao-link" target="_blank" rel="noopener" href="#">Pagar com cartão agora</a>
       <div class="aviso-comprovante">
-        <strong>Importante:</strong> depois de pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
+        <p class="aviso-titulo">⚠️ Atenção — envio obrigatório</p>
+        Depois de pagar, envie o comprovante pelo WhatsApp em até <strong>24 horas</strong>. Sem o comprovante, não conseguimos confirmar sua inscrição nem liberar o QR Code de acesso que será apresentado no dia do evento.
       </div>
       <a class="btn small" style="background:#25D366;margin-top:8px;" id="send-cartao-wa" target="_blank" rel="noopener" href="#">Enviar comprovante no WhatsApp</a>
       <p style="font-size:.78rem;opacity:.5;margin-top:24px;">Número do pedido: <strong id="pedido-id-display-cartao">—</strong></p>
