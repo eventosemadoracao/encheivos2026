@@ -293,6 +293,22 @@
   .pay-methods svg{color:var(--gold);}
   .pay-methods .divider{width:1px;height:16px;background:var(--line);}
 
+  .lote-countdown-box{
+    margin:4px 0 22px;padding:14px 12px;border-radius:14px;
+    background:rgba(223,90,31,.1);border:1px solid rgba(223,90,31,.3);
+  }
+  .lote-countdown-label{margin:0 0 10px;font-size:clamp(.78rem,.75rem + .12vw,.86rem);opacity:.85;}
+  .lote-countdown-label strong{color:var(--flame);}
+  .lote-countdown{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .lote-countdown .lc-item{text-align:center;line-height:1;}
+  .lote-countdown .lc-num{display:block;font-family:'Urbanist',sans-serif;font-size:clamp(1.2rem,1.05rem + .5vw,1.5rem);color:var(--flame);font-weight:600;font-variant-numeric:tabular-nums;}
+  .lote-countdown .lc-lbl{font-size:.62rem;opacity:.6;letter-spacing:.03em;text-transform:uppercase;}
+  @media (max-width:420px){
+    .lote-countdown{gap:9px;}
+    .lote-countdown .lc-num{font-size:1.05rem;}
+    .lote-countdown .lc-lbl{font-size:.56rem;}
+  }
+
 
   /* form */
   .ticket-block{
@@ -466,9 +482,13 @@
         <p class="section-tag">INVESTIMENTO</p>
       </div>
       <div class="price-card">
-        <p class="price-kicker">Sua vaga garantida por</p>
-        <div class="amount"><small>R$</small> 100,00</div>
+        <p class="price-kicker" id="lote-nome">Sua vaga garantida por</p>
+        <div class="amount"><small>R$</small> <span id="preco-atual">100,00</span></div>
         <p class="amount-unit">por pessoa</p>
+        <div class="lote-countdown-box" id="lote-countdown-box" style="display:none;">
+          <p class="lote-countdown-label">O preço sobe para <strong>R$ <span id="proximo-preco"></span></strong> em:</p>
+          <div class="lote-countdown" id="lote-countdown"></div>
+        </div>
         <p class="price-tagline">Esse valor ajuda a cobrir a estrutura do retiro. Tudo o que Deus fará em você é pura graça.</p>
         <div class="pay-methods">
           <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 4l3 3M13 7l2.5 2.5"/></svg> Pix</span>
@@ -632,7 +652,6 @@
 const CONFIG = {
   eventoId: "enchei-vos-espirito-santo-2026",
   eventoNome: "Enchei-vos do Espírito Santo 2026",
-  valorIngresso: 100.00,
   whatsappEquipe: "558391660374", // Contato oficial da equipe
   // Config do Firebase — reaproveite o mesmo projeto usado no sistema de ingressos
   // já existente, ou crie um novo projeto em https://console.firebase.google.com
@@ -648,6 +667,32 @@ const CONFIG = {
 
 // Coleção isolada por evento — não colide com outros eventos no mesmo projeto Firebase
 const COLLECTION = "inscricoes_" + CONFIG.eventoId.replace(/-/g, "_");
+
+/* ------------------------------ LOTES DE VENDA ------------------------------
+   Ajuste aqui as datas e valores de cada lote. O preço vigente é calculado
+   automaticamente com base na data/hora atual — não precisa trocar nada
+   manualmente quando um lote vira o outro. Horário de referência: João Pessoa (-03:00). */
+const LOTES = [
+  { nome: "Lote de Lançamento", valor: 55.00, inicio: new Date("2020-01-01T00:00:00-03:00"), fim: new Date("2026-09-27T23:59:59-03:00") },
+  { nome: "2º Lote",            valor: 65.00, inicio: new Date("2026-09-28T00:00:00-03:00"), fim: new Date("2026-10-18T23:59:59-03:00") },
+  { nome: "3º Lote",            valor: 75.00, inicio: new Date("2026-10-19T00:00:00-03:00"), fim: new Date("2026-11-08T23:59:59-03:00") }
+];
+
+function loteAtual(){
+  const agora = new Date();
+  for(const lote of LOTES){
+    if(agora >= lote.inicio && agora <= lote.fim) return lote;
+  }
+  // fallback de segurança: antes do 1º lote começar, ou depois do último terminar
+  if(agora < LOTES[0].inicio) return LOTES[0];
+  return LOTES[LOTES.length - 1];
+}
+function proximoLote(){
+  const atual = loteAtual();
+  const idx = LOTES.indexOf(atual);
+  return LOTES[idx + 1] || null;
+}
+function precoAtual(){ return loteAtual().valor; }
 
 let db = null;
 let firebaseOk = false;
@@ -675,6 +720,54 @@ function renderCountdown(){
 }
 renderCountdown();
 setInterval(renderCountdown, 1000);
+
+/* ------------------------- PREÇO ATUAL + CONTADOR DO LOTE ------------------------- */
+function formatarPreco(valor){
+  return valor.toFixed(2).replace('.', ',');
+}
+function renderPrecoELote(){
+  const lote = loteAtual();
+  const proximo = proximoLote();
+
+  const elNome = document.getElementById('lote-nome');
+  const elPreco = document.getElementById('preco-atual');
+  if(elNome) elNome.textContent = `${lote.nome} — sua vaga garantida por`;
+  if(elPreco) elPreco.textContent = formatarPreco(lote.valor);
+
+  const box = document.getElementById('lote-countdown-box');
+  const elProximoPreco = document.getElementById('proximo-preco');
+  const elCountdown = document.getElementById('lote-countdown');
+  if(!box || !elCountdown) return;
+
+  if(!proximo){
+    // já está no último lote — não há próximo aumento de preço a contar
+    box.style.display = 'none';
+    return;
+  }
+
+  const diff = proximo.inicio - new Date();
+  if(diff <= 0){
+    // o próximo lote já deveria ter começado; loteAtual() vai se atualizar no próximo tick
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = 'block';
+  if(elProximoPreco) elProximoPreco.textContent = formatarPreco(proximo.valor);
+
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const item = (num, lbl) => `<div class="lc-item"><span class="lc-num">${String(num).padStart(2,'0')}</span><span class="lc-lbl">${lbl}</span></div>`;
+  elCountdown.innerHTML = item(d,'dias') + item(h,'horas') + item(m,'min') + item(s,'seg');
+
+  // se o formulário de inscrição estiver aberto, mantém o total exibido em dia com o preço vigente
+  const containerEl = document.getElementById('tickets-container');
+  if(typeof updateTotals === 'function' && containerEl && containerEl.children.length) updateTotals();
+}
+renderPrecoELote();
+setInterval(renderPrecoELote, 1000);
 
 /* ---------------------------- PROGRAMAÇÃO (simulada) --------------------------- */
 const PROGRAMACAO = {
@@ -854,6 +947,36 @@ function formatarTelefoneInput(e){
   }
 }
 
+/* Validação de sintaxe do e-mail (formato usuario@dominio.tld).
+   Mais rigorosa que a regex simples anterior: bloqueia pontos duplicados/nas pontas,
+   exige um TLD com pelo menos 2 letras, e não aceita espaços em nenhum ponto. */
+function validarSintaxeEmail(email){
+  if(!email) return false;
+  const regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  if(!regex.test(email)) return false;
+  if(email.includes('..')) return false; // pontos duplicados nunca são válidos
+  const [usuario] = email.split('@');
+  if(usuario.startsWith('.') || usuario.endsWith('.')) return false;
+  return true;
+}
+
+/* Bloqueio de domínios de e-mail temporários/descartáveis mais comuns.
+   Lista curta e sem custo (não depende de API externa) — cobre os serviços mais usados
+   para burlar cadastros. Não substitui uma validação de DNS/MX real (essa exigiria
+   um backend, como o Firebase Cloud Functions no plano Blaze). */
+const DOMINIOS_DESCARTAVEIS = new Set([
+  'mailinator.com','guerrillamail.com','guerrillamail.info','guerrillamail.biz',
+  '10minutemail.com','10minutemail.net','temp-mail.org','tempmail.com','tempmail.net',
+  'yopmail.com','yopmail.fr','trashmail.com','getnada.com','fakeinbox.com',
+  'dispostable.com','throwawaymail.com','maildrop.cc','mintemail.com','sharklasers.com',
+  'spam4.me','mailcatch.com','moakt.com','emailondeck.com','mytemp.email'
+]);
+function isDominioDescartavel(email){
+  const partes = (email || '').split('@');
+  if(partes.length !== 2) return false;
+  return DOMINIOS_DESCARTAVEIS.has(partes[1].toLowerCase());
+}
+
 /* Validação semântica do telefone (WhatsApp): apenas celular — DDD real, começa com 9,
    sem dígitos repetidos, exatamente 11 dígitos.
    Retorna null quando válido, ou uma mensagem de erro específica quando inválido. */
@@ -884,8 +1007,8 @@ function validarTelefone(valorFormatado){
 function updateTotals(){
   const n = ticketsContainer.children.length;
   document.getElementById('ticket-count-label').textContent = `${n} inscrição${n>1?'ões':''}`;
-  document.getElementById('total-people').textContent = `${n} inscrição${n>1?'ões':''} × R$ ${CONFIG.valorIngresso.toFixed(2).replace('.',',')}`;
-  document.getElementById('total-value').textContent = `R$ ${(n*CONFIG.valorIngresso).toFixed(2).replace('.',',')}`;
+  document.getElementById('total-people').textContent = `${n} inscrição${n>1?'ões':''} × R$ ${precoAtual().toFixed(2).replace('.',',')}`;
+  document.getElementById('total-value').textContent = `R$ ${(n*precoAtual()).toFixed(2).replace('.',',')}`;
 }
 document.getElementById('add-ticket').addEventListener('click', addTicketBlock);
 addTicketBlock();
@@ -929,22 +1052,27 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     return;
   }
 
-  // validação: e-mail com formato básico válido (precisa de @ e domínio)
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const emailInvalido = blocks.some(b => !emailRegex.test(b.querySelector('input[name="email"]').value.trim()));
-  if(emailInvalido){
+  // validação: e-mail — sintaxe (RFC-simplificada) + domínios descartáveis/temporários bloqueados
+  const emailsNormalizados = blocks.map(b => b.querySelector('input[name="email"]').value.trim().toLowerCase());
+  const emailSintaxeInvalida = emailsNormalizados.some(email => !validarSintaxeEmail(email));
+  if(emailSintaxeInvalida){
     showMsg('Preencha um e-mail válido para todos os participantes.', 'error');
+    return;
+  }
+  const emailDescartavel = emailsNormalizados.some(email => isDominioDescartavel(email));
+  if(emailDescartavel){
+    showMsg('Não aceitamos e-mails temporários/descartáveis. Use um e-mail que você acesse normalmente, para receber o ingresso.', 'error');
     return;
   }
 
   const formaPagamento = document.querySelector('input[name="pagamento"]:checked').value;
   const pedidoId = gerarPedidoId();
-  const inscricoes = blocks.map(b => ({
+  const inscricoes = blocks.map((b, idx) => ({
     pedidoId,
     nome: b.querySelector('input[name="nome"]').value.trim(),
-    email: b.querySelector('input[name="email"]').value.trim(),
+    email: emailsNormalizados[idx],
     whatsapp: b.querySelector('input[name="whatsapp"]').value.trim(),
-    valor: CONFIG.valorIngresso,
+    valor: precoAtual(),
     eventoId: CONFIG.eventoId,
     formaPagamento,
     status: 'pendente_pagamento',
@@ -958,12 +1086,12 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
     gtag('event', 'inicio_inscricao', {
       forma_pagamento: formaPagamento,
       quantidade_inscricoes: inscricoes.length,
-      valor: inscricoes.length * CONFIG.valorIngresso
+      valor: inscricoes.length * precoAtual()
     });
   }
   if(typeof fbq === 'function'){
     fbq('track', 'InitiateCheckout', {
-      value: inscricoes.length * CONFIG.valorIngresso,
+      value: inscricoes.length * precoAtual(),
       currency: 'BRL',
       num_items: inscricoes.length,
       content_name: formaPagamento
@@ -994,13 +1122,13 @@ document.getElementById('reg-form').addEventListener('submit', async (e)=>{
       gtag('event', formaPagamento === 'pix' ? 'conversao_pix' : 'conversao_cartao', {
         pedido_id: pedidoId,
         quantidade_inscricoes: inscricoes.length,
-        valor: inscricoes.length * CONFIG.valorIngresso,
+        valor: inscricoes.length * precoAtual(),
         currency: 'BRL'
       });
     }
     if(typeof fbq === 'function'){
       fbq('track', 'Purchase', {
-        value: inscricoes.length * CONFIG.valorIngresso,
+        value: inscricoes.length * precoAtual(),
         currency: 'BRL',
         num_items: inscricoes.length,
         content_name: formaPagamento
@@ -1032,7 +1160,7 @@ function switchView(id){
 }
 
 function mostrarTelaPix(pedidoId, inscricoes){
-  const total = inscricoes.length * CONFIG.valorIngresso;
+  const total = inscricoes.length * precoAtual();
   // Código Pix "copia e cola" simulado — substitua pela integração real (PSP / banco)
   const pixSimulado = `00020126580014BR.GOV.BCB.PIX0136SIMULADO-${pedidoId}5204000053039865406${total.toFixed(2)}5802BR5920EM ADORACAO EVENTOS6009JOAO PESSOA62070503***6304ABCD`;
   document.getElementById('pix-code-text').textContent = pixSimulado;
