@@ -78,7 +78,7 @@
   .empty{text-align:center;padding:60px 20px;opacity:.55;}
 
   /* ------ mobile: tabelas viram cartões empilhados, sem rolagem lateral ------ */
-  @media (max-width:700px){
+  @media (max-width:700px), (hover:none) and (pointer:coarse){
     .wrap{padding:20px 14px 60px;}
     header h1{font-size:1.4rem;}
     .stats{grid-template-columns:repeat(2,1fr);gap:10px;}
@@ -161,9 +161,9 @@
       <div id="reader"></div>
 
       <div class="manual-check">
-        <p>Não conseguiu ler o QR Code? Digite o código do ingresso, o telefone ou o nome da pessoa:</p>
+        <p>Não conseguiu ler o QR Code? Digite o código do ingresso, o telefone, o e-mail ou o nome da pessoa:</p>
         <div class="manual-check-row">
-          <input type="text" id="manual-input" placeholder="Ex: EVE-AB12CD34, (83) 99999-9999 ou nome">
+          <input type="text" id="manual-input" placeholder="Ex: EVE-AB12CD34, (83) 99999-9999, e-mail ou nome">
           <button type="button" onclick="validarManual()">Validar</button>
         </div>
       </div>
@@ -442,6 +442,11 @@ function resolverCandidatos(valorBruto){
   if(digits.length >= 8){
     const porTelefone = ativas.filter(i=>(i.whatsapp||'').replace(/\D/g,'').endsWith(digits.slice(-8)));
     if(porTelefone.length) return porTelefone;
+  }
+
+  if(valor.includes('@')){
+    const porEmail = ativas.filter(i=>(i.email||'').toLowerCase() === valor.toLowerCase());
+    if(porEmail.length) return porEmail;
   }
 
   if(valor.length >= 3){

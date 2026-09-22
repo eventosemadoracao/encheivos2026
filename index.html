@@ -826,13 +826,32 @@ function addTicketBlock(){
 }
 
 function formatarTelefoneInput(e){
-  let digitos = e.target.value.replace(/\D/g,'').slice(0,11);
+  const input = e.target;
+  const posAntes = input.selectionStart;
+  const valorAntes = input.value;
+  // quantos dígitos existem antes do cursor, para reposicioná-lo corretamente depois
+  const digitosAntesDoCursor = valorAntes.slice(0, posAntes).replace(/\D/g,'').length;
+
+  let digitos = valorAntes.replace(/\D/g,'').slice(0,11);
   let formatado = digitos;
   if(digitos.length > 0) formatado = '(' + digitos.slice(0,2);
   if(digitos.length >= 2) formatado += ') ' + digitos.slice(2,3);
   if(digitos.length >= 3) formatado += ' ' + digitos.slice(3,7);
   if(digitos.length >= 7) formatado += '-' + digitos.slice(7,11);
-  e.target.value = formatado;
+  input.value = formatado;
+
+  // reposiciona o cursor logo após o mesmo dígito em que o usuário estava,
+  // em vez de deixar o navegador jogar o cursor pro final (o que travava o backspace no meio do número)
+  if(digitosAntesDoCursor === 0){
+    input.setSelectionRange(0, 0);
+  } else {
+    let contados = 0, pos = formatado.length;
+    for(let i=0; i<formatado.length; i++){
+      if(/\d/.test(formatado[i])) contados++;
+      if(contados === digitosAntesDoCursor){ pos = i+1; break; }
+    }
+    input.setSelectionRange(pos, pos);
+  }
 }
 
 /* Validação semântica do telefone (WhatsApp): apenas celular — DDD real, começa com 9,
